@@ -13,7 +13,7 @@ def test_tomd_with_url(mock_get):
     # Mock the response
     mock_response = Mock()
     mock_response.status_code = 200
-    mock_response.content = b"""
+    mock_response.text = """
     <html>
     <body>
         <article>
@@ -48,7 +48,7 @@ def test_tomd_with_https_url(mock_get):
     """Test that https URLs are recognized."""
     mock_response = Mock()
     mock_response.status_code = 200
-    mock_response.content = b"<html><body><h1>HTTPS Test</h1></body></html>"
+    mock_response.text = "<html><body><h1>HTTPS Test</h1></body></html>"
     mock_get.return_value = mock_response
 
     url = "https://secure.example.com/page"
@@ -63,7 +63,7 @@ def test_tomd_with_http_url(mock_get):
     """Test that http URLs are recognized."""
     mock_response = Mock()
     mock_response.status_code = 200
-    mock_response.content = b"<html><body><h1>HTTP Test</h1></body></html>"
+    mock_response.text = "<html><body><h1>HTTP Test</h1></body></html>"
     mock_get.return_value = mock_response
 
     url = "http://example.com/page"
@@ -78,7 +78,7 @@ def test_tomd_url_removes_scripts_and_styles(mock_get):
     """Test that script and style tags are removed."""
     mock_response = Mock()
     mock_response.status_code = 200
-    mock_response.content = b"""
+    mock_response.text = """
     <html>
     <head>
         <style>body { color: red; }</style>
@@ -109,7 +109,7 @@ def test_tomd_url_with_main_tag(mock_get):
     """Test that main content area is extracted."""
     mock_response = Mock()
     mock_response.status_code = 200
-    mock_response.content = b"""
+    mock_response.text = """
     <html>
     <body>
         <nav>Navigation</nav>
@@ -171,7 +171,7 @@ def test_tomd_url_with_complex_html(mock_get):
     """Test converting a complex HTML page."""
     mock_response = Mock()
     mock_response.status_code = 200
-    mock_response.content = b"""
+    mock_response.text = """
     <html>
     <body>
         <article>

@@ -19,6 +19,8 @@ def tomd(
     file: Union[str, Path],
     llm_enhance: bool = False,
     language: Optional[str] = None,
+    use_browser: bool = False,
+    content_selector: Optional[str] = None,
 ) -> str:
     """
     Convert a file or URL to Markdown format.
@@ -29,6 +31,10 @@ def tomd(
                     Requires OPENAI_API_KEY to be set in .env file
         language: Target language for translation (e.g., "Chinese", "English", "Japanese")
                  Only used when llm_enhance=True. If None, content will be enhanced without translation
+        use_browser: Whether to use headless browser for dynamic content (default: False)
+                    Useful for JavaScript-heavy websites
+        content_selector: CSS selector to extract specific content (e.g., "article", ".post-content")
+                         If None, extracts main content automatically
 
     Returns:
         Markdown string representation of the file content
@@ -46,6 +52,12 @@ def tomd(
         >>> # Convert with LLM enhancement
         >>> tomd("example.html", llm_enhance=True)
 
+        >>> # Convert URL with headless browser
+        >>> tomd("https://example.com", use_browser=True)
+
+        >>> # Extract specific content with selector
+        >>> tomd("https://example.com", use_browser=True, content_selector="article.main")
+
         >>> # Convert and translate to Chinese
         >>> tomd("https://example.com", llm_enhance=True, language="Chinese")
     """
@@ -55,7 +67,7 @@ def tomd(
     # Check if input is a URL
     if _is_url(input_str):
         logger.info(f"Detected URL input: {input_str}")
-        converter = URLConverter()
+        converter = URLConverter(use_browser=use_browser, content_selector=content_selector)
         markdown_content = converter.convert(input_str)
         logger.success(f"URL conversion completed, content length: {len(markdown_content)}")
     else:

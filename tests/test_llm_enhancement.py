@@ -190,7 +190,7 @@ def test_tomd_url_with_llm_enhance(mock_get, mock_openai):
     # Mock the URL response
     mock_response = Mock()
     mock_response.status_code = 200
-    mock_response.content = b"<html><body><h1>Web Content</h1></body></html>"
+    mock_response.text = "<html><body><h1>Web Content</h1></body></html>"
     mock_get.return_value = mock_response
 
     # Mock the OpenAI response
