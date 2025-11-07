@@ -61,16 +61,18 @@ class LLMEnhancer:
         if language:
             user_prompt = (
                 f"Please enhance and translate the following markdown content to {language}. "
-                f"Preserve all markdown formatting and structure. "
-                f"Make the content clear and professional.\n\n"
+                "Preserve all markdown formatting and structure. "
+                "Make the content clear and professional.\n\n"
                 f"{chunk}"
+                "<enhanced_content>```markdown\n"
             )
         else:
             user_prompt = (
-                f"Please enhance the following markdown content. "
-                f"Preserve all markdown formatting and structure. "
-                f"Make the content more clear, concise, and well-organized.\n\n"
+                "Please enhance the following markdown content. "
+                "Preserve all markdown formatting and structure. "
+                "Make the content more clear, concise, and well-organized.\n\n"
                 f"{chunk}"
+                "<enhanced_content>```markdown\n"
             )
 
         response = self.client.chat.completions.create(
@@ -83,7 +85,8 @@ class LLMEnhancer:
             temperature=0.3,
         )
 
-        return response.choices[0].message.content.strip()
+        enhanced_content = response.choices[0].message.content.strip().split("```</enhanced_content>")[0].replace("```markdown\n", "").strip()
+        return enhanced_content
 
     def enhance(self, content: str, language: Optional[str] = None) -> str:
         """
@@ -108,6 +111,10 @@ class LLMEnhancer:
             "Your task is to improve the quality of markdown content while preserving its structure. "
             "Keep all markdown formatting (headers, lists, links, code blocks, etc.) intact. "
             "Make the content more clear, concise, and well-organized."
+            "**IMPORTANT**: ALL ENHANCED CONTENT MUST BE MADE WITHOUT ADDITIONAL INFORMATION OR CONTEXT.\n"
+            "<output_format>"
+            "<enhanced_content>```markdown\n...enhanced markdown content...```</enhanced_content>"
+            "</output_format>"
         )
 
         try:
