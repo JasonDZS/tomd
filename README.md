@@ -12,6 +12,7 @@ Convert various file formats to Markdown.
   - Plain text (.txt)
   - Markdown (.md)
   - **Web URLs** (http://, https://)
+- **LLM Enhancement**: Optional AI-powered content enhancement and translation
 - Extensible plugin architecture for adding new formats
 - Type-safe with full type hints
 - Comprehensive test coverage
@@ -30,6 +31,8 @@ uv add tomd
 
 ## Usage
 
+### Basic Usage
+
 ```python
 from tomd import tomd
 
@@ -45,6 +48,53 @@ print(md_result)
 from pathlib import Path
 md_result = tomd(file=Path("example.html"))
 ```
+
+### LLM Enhancement (Optional)
+
+Enhance and optionally translate your content using AI:
+
+```python
+from tomd import tomd
+
+# Convert with LLM enhancement (improves clarity and formatting)
+md_result = tomd(
+    file="example.html",
+    llm_enhance=True
+)
+
+# Convert and translate to Chinese
+md_result = tomd(
+    file="https://example.com/article",
+    llm_enhance=True,
+    language="Chinese"
+)
+
+# Convert and translate to any language
+md_result = tomd(
+    file="document.pdf",
+    llm_enhance=True,
+    language="Japanese"  # or "Spanish", "French", etc.
+)
+```
+
+#### LLM Configuration
+
+To use LLM enhancement, create a `.env` file in your project root:
+
+```bash
+# Copy the example file
+cp .env.example .env
+
+# Edit .env with your settings
+OPENAI_API_BASE=https://api.openai.com/v1
+OPENAI_API_KEY=your-api-key-here
+LLM_MODEL=gpt-3.5-turbo
+LLM_MAX_TOKENS=8192
+```
+
+Supported models:
+- OpenAI: `gpt-4`, `gpt-3.5-turbo`, `gpt-4o-mini`
+- Custom endpoints: Any OpenAI-compatible API (DeepSeek, Qwen, etc.)
 
 ## Supported Formats
 
