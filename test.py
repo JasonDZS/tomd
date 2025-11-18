@@ -1,10 +1,8 @@
 from tomd import tomd
 print(
     tomd(
-        "https://aws.amazon.com/cn/blogs/china/agentive-ai-infrastructure-practice-series-1/",
+        "https://openai.com/index/gartner-2025-emerging-leader/",
         llm_enhance=False,
-        language="Chinese",
-        # use_browser=True,
-        # content_selector="div.blog-content",
+        use_browser=False,
     )
 )

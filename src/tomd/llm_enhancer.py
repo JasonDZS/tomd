@@ -111,6 +111,8 @@ class LLMEnhancer:
             "Your task is to improve the quality of markdown content while preserving its structure. "
             "Keep all markdown formatting (headers, lists, links, code blocks, etc.) intact. "
             "Make the content more clear, concise, and well-organized."
+            "You can clean up grammar, web action info (eg: 'loading', 'share'), improve phrasing, and enhance readability. "
+            "You can remove paragraphs that do not add value to the main content. such as ads, unrelated links, or navigation instructions."
             "**IMPORTANT**: ALL ENHANCED CONTENT MUST BE MADE WITHOUT ADDITIONAL INFORMATION OR CONTEXT.\n"
             "<output_format>"
             "<enhanced_content>```markdown\n...enhanced markdown content...```</enhanced_content>"
