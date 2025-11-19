@@ -1,0 +1,7 @@
+sites:
+  - domain: cognition.ai
+    selector: "#blog-post__body"
+  - domain: medium.com
+    selector: "article"
+  - domain: substack.com
+    selector: ".post-content"

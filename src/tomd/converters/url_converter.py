@@ -4,9 +4,11 @@ import re
 import tempfile
 from pathlib import Path
 from typing import Optional, Union
+from urllib.parse import urlparse
 
 import html2text
 import requests
+import yaml
 from bs4 import BeautifulSoup
 from loguru import logger
 
@@ -16,9 +18,10 @@ from .pdf_converter import PDFConverter
 class URLConverter:
     """Convert web pages to Markdown."""
 
-    def __init__(self, use_browser: bool = False, content_selector: Optional[str] = None):
+    def __init__(self, use_browser: bool = False, content_selector: Optional[str] = None, rule_file: Optional[Union[str, Path]] = None):
         self.use_browser = use_browser
         self.content_selector = content_selector
+        self.rule_file = rule_file
         self.converter = html2text.HTML2Text()
         # Configure html2text options
         self.converter.ignore_links = False
@@ -27,6 +30,27 @@ class URLConverter:
         self.converter.body_width = 0
         self.converter.unicode_snob = True
         self.converter.skip_internal_links = False
+        self._load_rules()
+
+    def _load_rules(self):
+        """Load site-specific extraction rules from rule.yml."""
+        self.site_rules = {}
+        rule_path = Path(self.rule_file) if self.rule_file else Path(__file__).parent.parent.parent.parent / "rule.yml"
+        if rule_path.exists():
+            try:
+                with open(rule_path) as f:
+                    data = yaml.safe_load(f)
+                    if data and "sites" in data:
+                        for site in data["sites"]:
+                            self.site_rules[site["domain"]] = site["selector"]
+                logger.debug(f"Loaded {len(self.site_rules)} site rules from {rule_path}")
+            except Exception as e:
+                logger.warning(f"Failed to load rules from {rule_path}: {e}")
+
+    def _get_selector_for_url(self, url: str) -> Optional[str]:
+        """Get content selector for URL based on domain rules."""
+        domain = urlparse(url).netloc.replace("www.", "")
+        return self.site_rules.get(domain)
 
     def _is_arxiv_url(self, url: str) -> bool:
         """Check if URL is an arXiv paper."""
@@ -104,7 +128,7 @@ class URLConverter:
         logger.debug(f"Requests fetch completed, status: {response.status_code}")
         return response.text
 
-    def _extract_content(self, html: str) -> str:
+    def _extract_content(self, html: str, url: str) -> str:
         """Extract main content from HTML."""
         soup = BeautifulSoup(html, "html.parser")
 
@@ -112,12 +136,14 @@ class URLConverter:
         for element in soup(["script", "style", "nav", "footer", "header"]):
             element.decompose()
 
-        # Use custom selector if provided
-        if self.content_selector:
-            logger.debug(f"Using custom selector: {self.content_selector}")
-            main_content = soup.select_one(self.content_selector)
+        # Determine selector: explicit > rule-based > auto-detect
+        selector = self.content_selector or self._get_selector_for_url(url)
+
+        if selector:
+            logger.debug(f"Using selector: {selector}")
+            main_content = soup.select_one(selector)
             if not main_content:
-                logger.warning(f"Selector '{self.content_selector}' not found, using fallback")
+                logger.warning(f"Selector '{selector}' not found, using fallback")
                 main_content = soup.find("body")
         else:
             # Auto-detect main content
@@ -170,7 +196,7 @@ class URLConverter:
                 html_content = self._fetch_with_browser(url_str)
 
         # Extract main content
-        extracted_html = self._extract_content(html_content)
+        extracted_html = self._extract_content(html_content, url_str)
 
         # Convert to markdown
         markdown = self.converter.handle(extracted_html)

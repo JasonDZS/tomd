@@ -172,6 +172,41 @@ except Exception as e:
     print(f"Conversion failed: {e}")
 ```
 
+## Site-Specific Rules
+
+Configure content selectors for different websites using a rule file.
+
+### Using Default rule.yml
+
+Create `rule.yml` in project root:
+
+```yaml
+sites:
+  - domain: cognition.ai
+    selector: "#blog-post__body"
+  - domain: medium.com
+    selector: "article"
+  - domain: substack.com
+    selector: ".post-content"
+```
+
+```python
+# Automatically uses rule.yml
+markdown = tomd("https://cognition.ai/blog/...")
+```
+
+### Using Custom Rule File
+
+```python
+# Use custom rule file
+markdown = tomd(
+    "https://example.com",
+    rule_file="my-rules.yml"
+)
+```
+
+**Priority:** `content_selector` parameter > rule file > auto-detection
+
 ## Parameters Reference
 
 | Parameter | Type | Default | Description |
@@ -181,3 +216,4 @@ except Exception as e:
 | `language` | str | None | Target language for translation |
 | `use_browser` | bool | False | Use headless browser (auto-fallback if needed) |
 | `content_selector` | str | None | CSS selector for content extraction |
+| `rule_file` | str/Path | None | Path to custom rule.yml file |
