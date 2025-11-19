@@ -1,7 +1,7 @@
 from tomd import tomd
 print(
     tomd(
-        "https://openai.com/index/gartner-2025-emerging-leader/",
+        "https://cognition.ai/blog/devin-annual-performance-review-2025/",
         llm_enhance=False,
         use_browser=False,
     )

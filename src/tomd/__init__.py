@@ -21,6 +21,7 @@ def tomd(
     language: Optional[str] = None,
     use_browser: bool = False,
     content_selector: Optional[str] = None,
+    rule_file: Optional[Union[str, Path]] = None,
 ) -> str:
     """
     Convert a file or URL to Markdown format.
@@ -35,6 +36,8 @@ def tomd(
                     Useful for JavaScript-heavy websites
         content_selector: CSS selector to extract specific content (e.g., "article", ".post-content")
                          If None, extracts main content automatically
+        rule_file: Path to custom rule.yml file for site-specific selectors
+                  If None, uses default rule.yml in project root
 
     Returns:
         Markdown string representation of the file content
@@ -67,7 +70,7 @@ def tomd(
     # Check if input is a URL
     if _is_url(input_str):
         logger.info(f"Detected URL input: {input_str}")
-        converter = URLConverter(use_browser=use_browser, content_selector=content_selector)
+        converter = URLConverter(use_browser=use_browser, content_selector=content_selector, rule_file=rule_file)
         markdown_content = converter.convert(input_str)
         logger.success(f"URL conversion completed, content length: {len(markdown_content)}")
     else:
