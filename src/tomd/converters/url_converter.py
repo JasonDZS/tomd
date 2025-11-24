@@ -65,6 +65,10 @@ class URLConverter:
         """Check if URL is a WeChat article."""
         return 'mp.weixin.qq.com' in url
 
+    def _is_pdf_url(self, url: str) -> bool:
+        """Check if URL points to a PDF file."""
+        return url.lower().endswith('.pdf') or '/pdf/' in url.lower()
+
     def _get_arxiv_pdf_url(self, url: str) -> str:
         """Convert arXiv URL to PDF download URL."""
         match = re.search(r'arxiv\.org/(abs|pdf)/(\d+\.\d+)', url)
@@ -229,6 +233,21 @@ class URLConverter:
             logger.info(f"Detected arXiv paper: {url_str}")
             pdf_url = self._get_arxiv_pdf_url(url_str)
             pdf_path = self._download_pdf(pdf_url)
+
+            try:
+                pdf_converter = PDFConverter()
+                markdown = pdf_converter.convert(pdf_path)
+                result = f"# Source: {url_str}\n\n{markdown.strip()}"
+                return result
+            finally:
+                # Only delete if using temp directory
+                if not self.download_dir:
+                    pdf_path.unlink()
+
+        # Handle generic PDF URLs
+        if self._is_pdf_url(url_str):
+            logger.info(f"Detected PDF URL: {url_str}")
+            pdf_path = self._download_pdf(url_str)
 
             try:
                 pdf_converter = PDFConverter()
