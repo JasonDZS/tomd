@@ -18,10 +18,11 @@ from .pdf_converter import PDFConverter
 class URLConverter:
     """Convert web pages to Markdown."""
 
-    def __init__(self, use_browser: bool = False, content_selector: Optional[str] = None, rule_file: Optional[Union[str, Path]] = None):
+    def __init__(self, use_browser: bool = False, content_selector: Optional[str] = None, rule_file: Optional[Union[str, Path]] = None, download_dir: Optional[Union[str, Path]] = None):
         self.use_browser = use_browser
         self.content_selector = content_selector
         self.rule_file = rule_file
+        self.download_dir = Path(download_dir) if download_dir else None
         self.converter = html2text.HTML2Text()
         # Configure html2text options
         self.converter.ignore_links = False
@@ -73,17 +74,30 @@ class URLConverter:
         return url
 
     def _download_pdf(self, url: str) -> Path:
-        """Download PDF to temporary file."""
+        """Download PDF to specified directory or temporary file."""
         logger.info(f"Downloading PDF from: {url}")
         response = requests.get(url, timeout=60)
         response.raise_for_status()
 
-        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
-        temp_file.write(response.content)
-        temp_file.close()
-
-        logger.debug(f"PDF downloaded to: {temp_file.name}")
-        return Path(temp_file.name)
+        if self.download_dir:
+            # Use custom download directory
+            self.download_dir.mkdir(parents=True, exist_ok=True)
+            # Extract filename from URL
+            filename = url.split('/')[-1]
+            if not filename.endswith('.pdf'):
+                filename = f"{filename}.pdf"
+            pdf_path = self.download_dir / filename
+            with open(pdf_path, 'wb') as f:
+                f.write(response.content)
+            logger.debug(f"PDF downloaded to: {pdf_path}")
+            return pdf_path
+        else:
+            # Use temporary file
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
+            temp_file.write(response.content)
+            temp_file.close()
+            logger.debug(f"PDF downloaded to: {temp_file.name}")
+            return Path(temp_file.name)
 
     def _fetch_with_browser(self, url: str) -> str:
         """Fetch page content using headless browser."""
@@ -222,7 +236,9 @@ class URLConverter:
                 result = f"# Source: {url_str}\n\n{markdown.strip()}"
                 return result
             finally:
-                pdf_path.unlink()
+                # Only delete if using temp directory
+                if not self.download_dir:
+                    pdf_path.unlink()
 
         # Fetch HTML content with automatic fallback
         if self.use_browser:

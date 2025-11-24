@@ -48,6 +48,9 @@ markdown = tomd("https://example.com", content_selector="article.main")
 
 # arXiv papers (auto-downloads and converts PDF)
 markdown = tomd("https://arxiv.org/abs/2301.00001")
+
+# Download arXiv PDF to specific directory
+markdown = tomd("https://arxiv.org/pdf/2511.14777", download_dir="/tmp")
 ```
 
 **Features:**
@@ -217,3 +220,4 @@ markdown = tomd(
 | `use_browser` | bool | False | Use headless browser (auto-fallback if needed) |
 | `content_selector` | str | None | CSS selector for content extraction |
 | `rule_file` | str/Path | None | Path to custom rule.yml file |
+| `download_dir` | str/Path | None | Directory to save downloaded files (e.g., PDFs from arXiv). If None, uses temp directory and auto-deletes |

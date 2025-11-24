@@ -22,6 +22,7 @@ def tomd(
     use_browser: bool = False,
     content_selector: Optional[str] = None,
     rule_file: Optional[Union[str, Path]] = None,
+    download_dir: Optional[Union[str, Path]] = None,
 ) -> str:
     """
     Convert a file or URL to Markdown format.
@@ -38,6 +39,8 @@ def tomd(
                          If None, extracts main content automatically
         rule_file: Path to custom rule.yml file for site-specific selectors
                   If None, uses default rule.yml in project root
+        download_dir: Directory to save downloaded files (e.g., PDFs from arXiv)
+                     If None, uses system temp directory
 
     Returns:
         Markdown string representation of the file content
@@ -63,6 +66,9 @@ def tomd(
 
         >>> # Convert and translate to Chinese
         >>> tomd("https://example.com", llm_enhance=True, language="Chinese")
+
+        >>> # Download arXiv paper to specific directory
+        >>> tomd("https://arxiv.org/pdf/2511.14777", download_dir="/tmp")
     """
     input_str = str(file)
     logger.info(f"Starting conversion for: {input_str}")
@@ -70,7 +76,7 @@ def tomd(
     # Check if input is a URL
     if _is_url(input_str):
         logger.info(f"Detected URL input: {input_str}")
-        converter = URLConverter(use_browser=use_browser, content_selector=content_selector, rule_file=rule_file)
+        converter = URLConverter(use_browser=use_browser, content_selector=content_selector, rule_file=rule_file, download_dir=download_dir)
         markdown_content = converter.convert(input_str)
         logger.success(f"URL conversion completed, content length: {len(markdown_content)}")
     else:
