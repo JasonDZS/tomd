@@ -5,3 +5,9 @@ sites:
     selector: "article"
   - domain: substack.com
     selector: ".post-content"
+  - domain: openai.com
+    selector: "article"
+  - domain: mp.weixin.qq.com
+    selector: "#js_content"
+  - domain: spaces.ac.cn
+    selector: "#content"

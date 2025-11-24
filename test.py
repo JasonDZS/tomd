@@ -1,7 +1,7 @@
 from tomd import tomd
 print(
     tomd(
-        "https://cognition.ai/blog/devin-annual-performance-review-2025/",
+        "https://arxiv.org/pdf/2511.14777",
         llm_enhance=False,
         use_browser=False,
     )

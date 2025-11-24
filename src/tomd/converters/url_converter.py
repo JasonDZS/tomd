@@ -18,10 +18,11 @@ from .pdf_converter import PDFConverter
 class URLConverter:
     """Convert web pages to Markdown."""
 
-    def __init__(self, use_browser: bool = False, content_selector: Optional[str] = None, rule_file: Optional[Union[str, Path]] = None):
+    def __init__(self, use_browser: bool = False, content_selector: Optional[str] = None, rule_file: Optional[Union[str, Path]] = None, download_dir: Optional[Union[str, Path]] = None):
         self.use_browser = use_browser
         self.content_selector = content_selector
         self.rule_file = rule_file
+        self.download_dir = Path(download_dir) if download_dir else None
         self.converter = html2text.HTML2Text()
         # Configure html2text options
         self.converter.ignore_links = False
@@ -60,6 +61,10 @@ class URLConverter:
         """Check if URL is a Douyin video."""
         return 'douyin.com' in url
 
+    def _is_wechat_url(self, url: str) -> bool:
+        """Check if URL is a WeChat article."""
+        return 'mp.weixin.qq.com' in url
+
     def _get_arxiv_pdf_url(self, url: str) -> str:
         """Convert arXiv URL to PDF download URL."""
         match = re.search(r'arxiv\.org/(abs|pdf)/(\d+\.\d+)', url)
@@ -69,17 +74,30 @@ class URLConverter:
         return url
 
     def _download_pdf(self, url: str) -> Path:
-        """Download PDF to temporary file."""
+        """Download PDF to specified directory or temporary file."""
         logger.info(f"Downloading PDF from: {url}")
         response = requests.get(url, timeout=60)
         response.raise_for_status()
 
-        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
-        temp_file.write(response.content)
-        temp_file.close()
-
-        logger.debug(f"PDF downloaded to: {temp_file.name}")
-        return Path(temp_file.name)
+        if self.download_dir:
+            # Use custom download directory
+            self.download_dir.mkdir(parents=True, exist_ok=True)
+            # Extract filename from URL
+            filename = url.split('/')[-1]
+            if not filename.endswith('.pdf'):
+                filename = f"{filename}.pdf"
+            pdf_path = self.download_dir / filename
+            with open(pdf_path, 'wb') as f:
+                f.write(response.content)
+            logger.debug(f"PDF downloaded to: {pdf_path}")
+            return pdf_path
+        else:
+            # Use temporary file
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
+            temp_file.write(response.content)
+            temp_file.close()
+            logger.debug(f"PDF downloaded to: {temp_file.name}")
+            return Path(temp_file.name)
 
     def _fetch_with_browser(self, url: str) -> str:
         """Fetch page content using headless browser."""
@@ -88,7 +106,9 @@ class URLConverter:
         logger.info(f"Using headless browser to fetch: {url}")
 
         with sync_playwright() as p:
-            browser = p.webkit.launch(headless=False if self._is_douyin_url(url) else True)
+            # Use non-headless mode for Douyin and WeChat
+            headless = not (self._is_douyin_url(url) or self._is_wechat_url(url))
+            browser = p.webkit.launch(headless=headless)
             page = browser.new_page(
                 user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Version/17.0 Safari/537.36",
                 viewport={"width": 1920, "height": 1080}
@@ -103,6 +123,10 @@ class URLConverter:
                 except Exception:
                     logger.warning("Video not found after 30s, extracting available content")
                 page.wait_for_timeout(2000)
+            elif self._is_wechat_url(url):
+                page.goto(url, wait_until="domcontentloaded", timeout=60000)
+                logger.info("Waiting for WeChat content to load (10s for manual verification if needed)...")
+                page.wait_for_timeout(10000)
             else:
                 page.goto(url, wait_until="networkidle")
 
@@ -145,6 +169,8 @@ class URLConverter:
             if not main_content:
                 logger.warning(f"Selector '{selector}' not found, using fallback")
                 main_content = soup.find("body")
+            else:
+                logger.debug(f"Content extracted, length: {len(str(main_content))}")
         else:
             # Auto-detect main content
             main_content = (
@@ -155,6 +181,33 @@ class URLConverter:
             )
 
         return str(main_content) if main_content else str(soup)
+
+    def _fix_relative_urls(self, markdown: str, base_url: str) -> str:
+        """Convert relative URLs to absolute URLs in markdown."""
+        from urllib.parse import urljoin
+        import re
+
+        # Fix image URLs: ![alt](path)
+        def replace_image(match):
+            alt = match.group(1)
+            url = match.group(2)
+            if not url.startswith(('http://', 'https://', '//', 'data:')):
+                url = urljoin(base_url, url)
+            return f"![{alt}]({url})"
+
+        markdown = re.sub(r'!\[([^\]]*)\]\(([^)]+)\)', replace_image, markdown)
+
+        # Fix link URLs: [text](path)
+        def replace_link(match):
+            text = match.group(1)
+            url = match.group(2)
+            if not url.startswith(('http://', 'https://', '//', '#', 'mailto:')):
+                url = urljoin(base_url, url)
+            return f"[{text}]({url})"
+
+        markdown = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', replace_link, markdown)
+
+        return markdown
 
     def convert(self, url: Union[str, Path]) -> str:
         """
@@ -183,7 +236,9 @@ class URLConverter:
                 result = f"# Source: {url_str}\n\n{markdown.strip()}"
                 return result
             finally:
-                pdf_path.unlink()
+                # Only delete if using temp directory
+                if not self.download_dir:
+                    pdf_path.unlink()
 
         # Fetch HTML content with automatic fallback
         if self.use_browser:
@@ -200,6 +255,9 @@ class URLConverter:
 
         # Convert to markdown
         markdown = self.converter.handle(extracted_html)
+
+        # Fix relative URLs
+        markdown = self._fix_relative_urls(markdown, url_str)
 
         # Add source URL at the top
         result = f"# Source: {url_str}\n\n{markdown.strip()}"
